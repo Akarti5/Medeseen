@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Gestion Médecins"
+rootProject.name = "Medseen"
 
 include(":app")

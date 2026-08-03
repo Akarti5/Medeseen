@@ -1,5 +1,5 @@
 {
-  "name": "Gestion Médecins",
+  "name": "Medseen",
   "description": "Application de gestion des médecins avec CRUD complet, recherche multi-critères et base de données Room.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
