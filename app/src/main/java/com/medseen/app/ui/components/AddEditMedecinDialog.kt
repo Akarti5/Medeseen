@@ -154,6 +154,7 @@ fun AddEditMedecinDialog(
                             model = photo,
                             contentDescription = "Photo sélectionnée",
                             contentScale = ContentScale.Crop,
+                            alignment = Alignment.TopCenter,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {

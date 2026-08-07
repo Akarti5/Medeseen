@@ -1,5 +1,10 @@
 package com.medseen.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Refresh
@@ -31,11 +38,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -53,6 +63,7 @@ import com.medseen.app.ui.components.AddEditMedecinDialog
 import com.medseen.app.ui.components.DoctorCard
 import com.medseen.app.ui.components.MedecinDetailDialog
 import com.medseen.app.ui.components.SearchAndFilterHeader
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,8 +79,22 @@ fun MedecinMainScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var doctorToViewDetail by remember { mutableStateOf<Medecin?>(null) }
     var doctorToDelete by remember { mutableStateOf<Medecin?>(null) }
+    var feedbackMessage by remember { mutableStateOf<UiMessage?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiMessages.collect { message ->
+            feedbackMessage = message
+            delay(2800)
+            if (feedbackMessage == message) {
+                feedbackMessage = null
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = {
+            StatusFeedbackBanner(message = feedbackMessage)
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -94,11 +119,6 @@ fun MedecinMainScreen(
                                 text = "Medseen",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "CRUD & Recherche (Room SQL)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -243,6 +263,68 @@ fun MedecinMainScreen(
             },
             shape = RoundedCornerShape(16.dp)
         )
+    }
+}
+
+@Composable
+private fun StatusFeedbackBanner(message: UiMessage?) {
+    val successGreen = Color(0xFF1B7F4E)
+    val errorRed = Color(0xFFB3261E)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedVisibility(
+            visible = message != null,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut()
+        ) {
+            val current = message ?: return@AnimatedVisibility
+            val isSuccess = current is UiMessage.Success
+            val containerColor = if (isSuccess) successGreen else errorRed
+            val text = when (current) {
+                is UiMessage.Success -> current.message
+                is UiMessage.Error -> current.message
+            }
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = containerColor,
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(if (isSuccess) "delete_success_banner" else "delete_error_banner")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isSuccess) "Suppression réussie" else "Suppression échouée",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = text,
+                            color = Color.White.copy(alpha = 0.92f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

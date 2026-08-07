@@ -237,6 +237,7 @@ private fun DoctorListPhoto(
                 model = photoPath,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter,
                 modifier = Modifier.fillMaxSize()
             )
         } else {

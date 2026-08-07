@@ -7,14 +7,22 @@ import com.medseen.app.data.AppDatabase
 import com.medseen.app.data.Medecin
 import com.medseen.app.data.MedecinRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+
+sealed class UiMessage {
+    data class Success(val message: String) : UiMessage()
+    data class Error(val message: String) : UiMessage()
+}
 
 /**
  * ViewModel gérant le d'état de l'interface et les actions CRUD / Recherche
@@ -26,6 +34,9 @@ class MedecinViewModel(application: Application) : AndroidViewModel(application)
     val searchQuery = MutableStateFlow("")
     val selectedSpecialite = MutableStateFlow("Toutes")
     val showFavoritesOnly = MutableStateFlow(false)
+
+    private val _uiMessages = MutableSharedFlow<UiMessage>(extraBufferCapacity = 1)
+    val uiMessages = _uiMessages.asSharedFlow()
 
     init {
         val dao = AppDatabase.getDatabase(application).medecinDao()
@@ -83,7 +94,17 @@ class MedecinViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteMedecin(medecin: Medecin) {
         viewModelScope.launch {
-            repository.delete(medecin)
+            try {
+                repository.delete(medecin)
+                deletePhotoFile(medecin.photo)
+                _uiMessages.emit(
+                    UiMessage.Success("${medecin.nom} a été supprimé avec succès")
+                )
+            } catch (e: Exception) {
+                _uiMessages.emit(
+                    UiMessage.Error("Échec de la suppression de ${medecin.nom}")
+                )
+            }
         }
     }
 
@@ -96,6 +117,14 @@ class MedecinViewModel(application: Application) : AndroidViewModel(application)
     fun resetSampleData() {
         viewModelScope.launch {
             repository.seedSampleDataIfEmpty()
+        }
+    }
+
+    private fun deletePhotoFile(path: String) {
+        if (path.isBlank() || path.startsWith("avatar_")) return
+        runCatching {
+            val file = File(path)
+            if (file.exists()) file.delete()
         }
     }
 }
